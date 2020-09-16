@@ -23,17 +23,22 @@ def calculate_total(debt, percent, date_start, months, repayments = []):
         date_diff = relativedelta(row_date, date_start)
         repayment.append(date_diff)
         diff_months = date_diff.months + date_diff.years * 12
-        by_month[diff_months] = repayment
+        if diff_months not in by_month.keys(): by_month[diff_months] = []
+        by_month[diff_months].append(repayment)
     total = 0
-    month = 0
-    while month < months:
-        rp = by_month.get(month)
-        current_date = date_start + relativedelta(months = month + 1)
+    month = 1
+    while month <= months:
+        rpa = by_month.get(month - 1)
+        current_date = date_start + relativedelta(months = month)
         lmt = (current_date - prev_date).days
         dt = lmt
-        if rp != None:
-            if rp[2] == 0:
-                rp_loan = round(loan_month * (rp[3].days) / dt, 2)
+        lday = 0
+        if rpa != None:
+            atl = 0
+            for rp in rpa:
+                lday = rp[3].days - lday + (rp[3].hours * 3600 + rp[3].minutes * 60 + rp[3].seconds) / 86400
+                rp_loan = round(result * percent_month * (lday) / dt, 2) - atl
+                atl += rp_loan
                 total += rp[1]
                 rp_part = rp[1] - rp_loan
                 result = result - rp_part
@@ -43,31 +48,17 @@ def calculate_total(debt, percent, date_start, months, repayments = []):
                     rp[1] = rp_part + rp_loan
                     total += rp[1]
                     result = 0
-                lmt -= rp[3].days
-                part = monthly_payment(result, percent_month, months - month - 1)
-                table.append( (month, rp[0], result, rp_loan, rp_part, rp[1]) )
-            elif rp[2] == 1:
-                rp_loan = round(loan_month * (rp[3].days) / dt, 2)
-                total += rp[1]
-                rp_part = rp[1] - rp_loan
-                result = result - rp_part
-                if result <= 0:
-                    rp_part += result
-                    total -= rp[1]
-                    rp[1] = rp_part + rp_loan
-                    total += rp[1]
-                    result = 0
-                
-                sub_months = math.ceil(math.log(part/(part - percent_month * result), 1 + percent_month))
-
-                months = month + sub_months + 1
-                lmt -= rp[3].days
-                # part = monthly_payment(result, percent_month, months - month - 1)
+                if rp[2] == 0:
+                    part = monthly_payment(result, percent_month, months - month)
+                elif rp[2] == 1:
+                    sub_months = math.ceil(math.log(part/(part - percent_month * result), 1 + percent_month))
+                    months = month + sub_months
                 table.append( (month, rp[0], result, rp_loan, rp_part, rp[1]) )
 
-        loan_month = round(result * percent_month * lmt / dt, 2)
+        loan_month = round(result * percent_month * (lmt - lday) / dt, 2)
         part_month = part - loan_month
-        if rp == None:
+
+        if rpa == None:
             result = result - part_month
             if result <= 0:
                 part_month += result
@@ -104,7 +95,10 @@ def main(argv):
             with open(filename, newline='') as csvfile:
                 reader = csv.reader(csvfile, delimiter=',', quotechar='"')
                 for row in reader:
-                    row_date = datetime.strptime(row[0], '%d.%m.%Y')
+                    if row[0].find(" ") == -1:
+                        row_date = datetime.strptime(row[0], '%d.%m.%Y')
+                    else:
+                        row_date = datetime.strptime(row[0], '%d.%m.%Y %H:%M:%S')
                     row_repayment = float(row[1])
                     row_type = int(row[2]) if len(row) >= 3 else 0
                     repayments.append([row_date, row_repayment, row_type])
