@@ -10,6 +10,9 @@ def monthly_payment(debt, percent_month, months):
     fraction = (percent_month * (1 + percent_month) ** months) / ((1 + percent_month) ** months - 1)
     return round(debt * fraction, 2) 
 
+def get_days_number(year):
+    return 366 if year % 4 == 0 and year % 100 != 0 or year % 400 == 0 else 365
+
 def calculate_total(debt, percent, date_start, months, repayments = []):
     percent_month = percent / 12
     part = monthly_payment(debt, percent_month, months) 
@@ -27,16 +30,18 @@ def calculate_total(debt, percent, date_start, months, repayments = []):
         by_month[diff_months].append(repayment)
     total = 0
     month = 1
+    prev_year_days = get_days_number(date_start.year)
     while month <= months:
         rpa = by_month.get(month - 1)
         current_date = date_start + relativedelta(months = month)
         lmt = (current_date - prev_date).days
-        dt = lmt
+        year_days = get_days_number(current_date.year)
+        dt = (year_days + (prev_year_days - year_days) / 2.38) / 12
         lday = 0
         if rpa != None:
             atl = 0
             for rp in rpa:
-                lday = rp[3].days - lday + (rp[3].hours * 3600 + rp[3].minutes * 60 + rp[3].seconds) / 86400
+                lday = rp[3].days - lday
                 rp_loan = round(result * percent_month * (lday) / dt, 2) - atl
                 atl += rp_loan
                 total += rp[1]
@@ -55,7 +60,7 @@ def calculate_total(debt, percent, date_start, months, repayments = []):
                     months = month + sub_months
                 table.append( (month, rp[0], result, rp_loan, rp_part, rp[1]) )
 
-        loan_month = round(result * percent_month * (lmt - lday) / dt, 2)
+        loan_month = result * percent_month * (lmt - lday) / dt
         part_month = part - loan_month
 
         if rpa == None:
@@ -70,6 +75,7 @@ def calculate_total(debt, percent, date_start, months, repayments = []):
         prev_date = current_date
 
         month += 1
+        prev_year_days = year_days
     return (total, table)
 
 def main(argv):
@@ -95,10 +101,7 @@ def main(argv):
             with open(filename, newline='') as csvfile:
                 reader = csv.reader(csvfile, delimiter=',', quotechar='"')
                 for row in reader:
-                    if row[0].find(" ") == -1:
-                        row_date = datetime.strptime(row[0], '%d.%m.%Y')
-                    else:
-                        row_date = datetime.strptime(row[0], '%d.%m.%Y %H:%M:%S')
+                    row_date = datetime.strptime(row[0], '%d.%m.%Y')
                     row_repayment = float(row[1])
                     row_type = int(row[2]) if len(row) >= 3 else 0
                     repayments.append([row_date, row_repayment, row_type])
