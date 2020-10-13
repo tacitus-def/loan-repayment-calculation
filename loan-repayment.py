@@ -30,13 +30,15 @@ def calculate_total(debt, percent, date_start, months, repayments = []):
         by_month[diff_months].append(repayment)
     total = 0
     month = 1
+    overpayment = 0
     prev_year_days = get_days_number(date_start.year)
     while month <= months:
         rpa = by_month.get(month - 1)
         current_date = date_start + relativedelta(months = month)
         lmt = (current_date - prev_date).days
         year_days = get_days_number(current_date.year)
-        dt = (year_days + (prev_year_days - year_days) / 2.38) / 12
+        correction_delta = (prev_year_days - year_days) / 2.38
+        dt = (year_days + correction_delta) / 12
         lday = 0
         if rpa != None:
             atl = 0
@@ -58,7 +60,9 @@ def calculate_total(debt, percent, date_start, months, repayments = []):
                 elif rp[2] == 1:
                     sub_months = math.ceil(math.log(part/(part - percent_month * result), 1 + percent_month))
                     months = month + sub_months
-                table.append( (month, rp[0], result, rp_loan, rp_part, rp[1]) )
+                overpayment += rp_loan
+                table.append( (month, rp[0], result, rp_loan, rp_part, rp[1], overpayment) )
+
 
         loan_month = result * percent_month * (lmt - lday) / dt
         part_month = part - loan_month
@@ -71,7 +75,8 @@ def calculate_total(debt, percent, date_start, months, repayments = []):
         else:
             part_month = 0
         total += loan_month + part_month
-        table.append( (month, current_date, result, loan_month, part_month, loan_month + part_month) )
+        overpayment += loan_month
+        table.append( (month, current_date, result, loan_month, part_month, loan_month + part_month, overpayment) )
         prev_date = current_date
 
         month += 1
@@ -112,9 +117,9 @@ def main(argv):
     print("Total: %9.2f" % (total));
 
     if not no_print: 
-        print("\n #\tDate      \t     Debt\t Interest\t Redempt.\t  Payment")
+        print("\n #\tDate      \t     Debt\t Interest\t Redempt.\t  Payment\t     Over")
         for row in table:
-            print("%02d\t%s\t%9.2f\t%9.2f\t%9.2f\t%9.2f" % (row[0] + 1, row[1].strftime('%d.%m.%Y'), row[2], row[3], row[4], row[5]))
+            print("%02d\t%s\t%9.2f\t%9.2f\t%9.2f\t%9.2f\t%9.2f" % (row[0], row[1].strftime('%d.%m.%Y'), row[2], row[3], row[4], row[5], row[6]))
 
 if __name__ == "__main__":
     main(sys.argv[1:])
