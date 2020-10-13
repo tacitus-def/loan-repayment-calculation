@@ -8,7 +8,7 @@ from dateutil.relativedelta import relativedelta
 
 def monthly_payment(debt, percent_month, months):
     fraction = (percent_month * (1 + percent_month) ** months) / ((1 + percent_month) ** months - 1)
-    return round(debt * fraction, 2) 
+    return debt * fraction 
 
 def get_days_number(year):
     return 366 if year % 4 == 0 and year % 100 != 0 or year % 400 == 0 else 365
@@ -42,7 +42,7 @@ def calculate_total(debt, percent, date_start, months, repayments = []):
             atl = 0
             for rp in rpa:
                 lday = rp[3].days - lday
-                rp_loan = round(result * percent_month * (lday) / dt, 2) - atl
+                rp_loan = result * percent_month * (lday) / dt - atl
                 atl += rp_loan
                 total += rp[1]
                 rp_part = rp[1] - rp_loan
