@@ -24,8 +24,9 @@ def calculate_total(debt, percent, date_start, months, repayments = []):
     for repayment in repayments:
         row_date = repayment[0]
         date_diff = relativedelta(row_date, date_start)
-        repayment.append(date_diff)
+        repayment.append(relativedelta(row_date - relativedelta(days=1), date_start).days + 1 if date_diff.days == 0 else date_diff.days)
         diff_months = date_diff.months + date_diff.years * 12
+        if row_date.day == date_start.day: diff_months -= 1
         if diff_months not in by_month.keys(): by_month[diff_months] = []
         by_month[diff_months].append(repayment)
     total = 0
@@ -43,7 +44,7 @@ def calculate_total(debt, percent, date_start, months, repayments = []):
         if rpa != None:
             atl = 0
             for rp in rpa:
-                lday = rp[3].days - lday
+                lday = rp[3] - lday
                 rp_loan = result * percent_month * (lday) / dt - atl
                 atl += rp_loan
                 total += rp[1]
@@ -76,7 +77,8 @@ def calculate_total(debt, percent, date_start, months, repayments = []):
             part_month = 0
         total += loan_month + part_month
         overpayment += loan_month
-        table.append( (month, current_date, result, loan_month, part_month, loan_month + part_month, overpayment) )
+        if loan_month + part_month != 0:
+            table.append( (month, current_date, result, loan_month, part_month, loan_month + part_month, overpayment) )
         prev_date = current_date
 
         month += 1
