@@ -106,7 +106,7 @@ def main(argv):
             with open(filename, newline='') as csvfile:
                 reader = csv.reader(csvfile, delimiter=',', quotechar='"')
                 for row in reader:
-                    row_date = datetime.strptime(row[0], '%d.%m.%Y')
+                    row_date = datetime.strptime(row[0], '%d.%m.%Y').date()
                     row_repayment = float(row[1])
                     row_type = int(row[2]) if len(row) >= 3 else 0
                     repayments.append([row_date, row_repayment, row_type])
